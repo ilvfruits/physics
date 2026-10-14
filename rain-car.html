@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rain on a running car · physics model + animation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #0b1a2e 0%, #1b3b4f 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 2.5rem;
+            padding: 2rem 2rem 1.8rem;
+            box-shadow: 0 25px 40px -10px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+            width: 1100px;
+            max-width: 100%;
+            color: #e9f2f9;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0 0 0.2rem 0;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        h1 small {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #b6d9f0;
+            margin-left: auto;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.25rem 0.9rem;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .subhead {
+            margin: 0 0 1.8rem 0;
+            font-size: 0.95rem;
+            color: #b6d9f0;
+            border-left: 4px solid #4fa3d9;
+            padding-left: 1rem;
+            background: rgba(79, 163, 217, 0.08);
+            border-radius: 0 12px 12px 0;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr 0.9fr;
+            gap: 1.6rem;
+            align-items: start;
+        }
+        /* ----- sliders column (left) ----- */
+        .sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+        .slider-item {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 1.5rem;
+            padding: 0.9rem 1.4rem 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.1s ease;
+        }
+        .slider-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.6rem;
+        }
+        .slider-header label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #d3e9fc;
+            letter-spacing: 0.2px;
+        }
+        .slider-header .value {
+            font-weight: 700;
+            font-size: 1.3rem;
+            font-variant-numeric: tabular-nums;
+            color: #fff;
+            background: #1f4b6e;
+            padding: 0.1rem 0.8rem;
+            border-radius: 30px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            border: 1px solid #4fa3d9;
+        }
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #2f7eb3 0%, #7ac7ff 100%);
+            border-radius: 10px;
+            outline: none;
+            margin: 0.4rem 0 0.1rem;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #1e6b9e;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: 0.08s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+            background: #f0f9ff;
+        }
+        .unit {
+            font-size: 0.75rem;
+            color: #9bb8d0;
+            margin-left: 4px;
+            font-weight: 400;
+        }
+        /* ----- result panel (middle) ----- */
+        .result-box {
+            background: #0a1e2b;
+            border-radius: 2rem;
+            padding: 1.5rem 1.6rem 1.8rem;
+            box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.7), 0 15px 25px -8px black;
+            border: 1px solid #2c6d94;
+            height: fit-content;
+        }
+        .result-title {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #7ab7e0;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+        .big-number {
+            font-size: 3.8rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #b3e4ff;
+            text-shadow: 0 0 25px #2e8bc0;
+            letter-spacing: -2px;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .big-number span {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #aac9e0;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+        .rain-breakdown {
+            margin-top: 1.6rem;
+            padding-top: 1.4rem;
+            border-top: 1px solid #2d5f7a;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            color: #c2ddf2;
+        }
+        .row .label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .row .number {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: white;
+            background: #173e57;
+            padding: 0.2rem 0.7rem;
+            border-radius: 40px;
+            border: 1px solid #3a7d9e;
+        }
+        /* ----- animation canvas (right) ----- */
+        .canvas-panel {
+            background: #071a24;
+            border-radius: 2rem;
+            padding: 1rem;
+            box-shadow: inset 0 3px 12px rgba(0,0,0,0.8), 0 10px 20px -8px black;
+            border: 1px solid #2c6d94;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-panel canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 1.2rem;
+            background: #0d2c3b;
+            display: block;
+            border: 1px solid #2a5c7a;
+        }
+        .canvas-label {
+            font-size: 0.8rem;
+            color: #8ab9dd;
+            margin-top: 0.6rem;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+        .pause-btn {
+            margin-top: 0.7rem;
+            width: 100%;
+            padding: 0.55rem 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #eaf4fe;
+            background: #1a4e6b;
+            border: 1px solid #4a9cc5;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .pause-btn:hover {
+            background: #236a8e;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+        }
+        .pause-btn:active {
+            transform: scale(0.97);
+            background: #124058;
+        }
+        /* ----- equations section ----- */
+        .equations {
+            margin-top: 2rem;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 2rem;
+            padding: 1.4rem 2rem 1.6rem;
+            border: 1px solid #1d4f6e;
+            grid-column: 1 / -1;
+        }
+        .equations h2 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #b3d9f5;
+            margin: 0 0 1rem 0;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .equations h2 i {
+            font-style: normal;
+            font-size: 1.3rem;
+        }
+        .eq-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.2rem 1.8rem;
+        }
+        .eq-item {
+            background: #08212e;
+            padding: 0.7rem 1.1rem;
+            border-radius: 1.2rem;
+            border-left: 4px solid #3f8bb0;
+            font-size: 0.95rem;
+            color: #d7edff;
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.4);
+        }
+        .eq-item strong {
+            color: white;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.2rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8fc9f0;
+        }
+        .eq-item code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #103d52;
+            padding: 0.15rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            color: #e3f0ff;
+            display: inline-block;
+            margin: 0.15rem 0;
+        }
+        .eq-item .desc {
+            font-size: 0.8rem;
+            color: #9bbcd4;
+            margin-top: 0.2rem;
+            line-height: 1.4;
+        }
+        .footnote {
+            font-size: 0.78rem;
+            color: #8aaec6;
+            margin-top: 1.4rem;
+            text-align: right;
+            border-top: 1px dashed #1e4a64;
+            padding-top: 1rem;
+            line-height: 1.4;
+        }
+        .footnote strong {
+            color: #c1e0f5;
+        }
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .canvas-panel {
+                grid-column: 1 / -1;
+            }
+            .eq-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 650px) {
+            .card { padding: 1.2rem; }
+            .main-grid { grid-template-columns: 1fr; }
+            .big-number { font-size: 2.8rem; }
+            .eq-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <a href="index.html" class="back-btn">← Back to experiments</a>
+    <h1>
+        🌧️ Rain catcher · moving car
+        <small>physics + animation</small>
+    </h1>
+    <div class="subhead">
+        The car sweeps a volume of air. Raindrops within that volume hit the car.
+        Adjust speed, rain velocity, angle & distance.
+    </div>
+
+    <div class="main-grid">
+        <!-- LEFT: sliders -->
+        <div class="sliders">
+            <!-- car speed -->
+            <div class="slider-item">
+                <div class="slider-header">
+                    <label>🚗 Car speed</label>
+                    <span class="value" id="carSpeedVal">15 <span class="unit">m/s</span></span>
+                </div>
+                <input type="range" id="carSpeed" min="0" max="40" value="15" step="0.5">
+            </div>
+            <!-- rain speed (vertical component) -->
+            <div class="slider-item">
+                <div class="slider-header">
+                    <label>⬇️ Rain vertical speed</label>
+                    <span class="value" id="rainSpeedVal">7.0 <span class="unit">m/s</span></span>
+                </div>
+                <input type="range" id="rainSpeed" min="0" max="20" value="7" step="0.2">
+            </div>
+            <!-- rain direction / angle -->
+            <div class="slider-item">
+                <div class="slider-header">
+                    <label>🧭 Rain angle (from vertical)</label>
+                    <span class="value" id="rainAngleVal">0 <span class="unit">°</span></span>
+                </div>
+                <input type="range" id="rainAngle" min="-60" max="60" value="0" step="1">
+                <div style="display:flex; justify-content: space-between; font-size:0.7rem; color:#a1bfd6; margin-top:2px;">
+                    <span>← tailwind (from behind)</span>
+                    <span>headwind (from front) →</span>
+                </div>
+            </div>
+            <!-- distance -->
+            <div class="slider-item">
+                <div class="slider-header">
+                    <label>📏 Distance travelled</label>
+                    <span class="value" id="distanceVal">1000 <span class="unit">m</span></span>
+                </div>
+                <input type="range" id="distance" min="50" max="5000" value="1000" step="10">
+            </div>
+            <!-- rain density (amount of rain per cubic meter) -->
+            <div class="slider-item">
+                <div class="slider-header">
+                    <label>💧 Rain density</label>
+                    <span class="value" id="densityVal">1000 <span class="unit">drops/m³</span></span>
+                </div>
+                <input type="range" id="density" min="100" max="5000" value="1000" step="50">
+            </div>
+        </div>
+
+        <!-- MIDDLE: result panel -->
+        <div class="result-box">
+            <div class="result-title">💦 Rain captured</div>
+            <div class="big-number" id="rainMassDisplay">
+                0.00 <span>kg (or litres)</span>
+            </div>
+            <div class="rain-breakdown">
+                <div class="row">
+                    <span class="label"><i>📐</i> Effective frontal area</span>
+                    <span class="number" id="areaDisplay">2.20 m²</span>
+                </div>
+                <div class="row">
+                    <span class="label"><i>💨</i> Relative speed |v<sub>rel</sub>|</span>
+                    <span class="number" id="relSpeedDisplay">15.0 m/s</span>
+                </div>
+                <div class="row">
+                    <span class="label"><i>🕒</i> Travel time</span>
+                    <span class="number" id="timeDisplay">66.7 s</span>
+                </div>
+                <div class="row">
+                    <span class="label"><i>📦</i> Swept volume</span>
+                    <span class="number" id="volumeDisplay">2200 m³</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: animation canvas + pause button -->
+        <div class="canvas-panel">
+            <canvas id="rainCanvas" width="320" height="260"></canvas>
+            <div class="canvas-label">🚗 car moves right · rain vector shown</div>
+            <button class="pause-btn" id="pauseBtn" aria-label="Pause or resume animation">
+                <span id="pauseIcon">⏸</span> <span id="pauseText">Pause</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- EQUATIONS SECTION -->
+    <div class="equations">
+        <h2><i>📐</i> Physics equations used in this model</h2>
+        <div class="eq-grid">
+            <div class="eq-item">
+                <strong>1. Rain horizontal velocity</strong>
+                <code>v<sub>rain,x</sub> = − v<sub>rain</sub> · tan(θ)</code>
+                <div class="desc">θ is the angle from vertical. Positive θ (headwind) gives negative x (against car).</div>
+            </div>
+            <div class="eq-item">
+                <strong>2. Relative velocity magnitude</strong>
+                <code>|v<sub>rel</sub>| = √( (v<sub>car</sub> − v<sub>rain,x</sub>)² + v<sub>rain</sub>² )</code>
+                <div class="desc">Combines horizontal and vertical components of rain relative to the car.</div>
+            </div>
+            <div class="eq-item">
+                <strong>3. Travel time</strong>
+                <code>t = d / v<sub>car</sub></code>
+                <div class="desc">Time to cover the distance d. If v<sub>car</sub> = 0, we set t = 0.</div>
+            </div>
+            <div class="eq-item">
+                <strong>4. Swept volume</strong>
+                <code>V = A<sub>frontal</sub> · |v<sub>rel</sub>| · t</code>
+                <div class="desc">A<sub>frontal</sub> = 2.2 m² (typical sedan).</div>
+            </div>
+            <div class="eq-item">
+                <strong>5. Number of drops</strong>
+                <code>N = ρ<sub>rain</sub> · V</code>
+                <div class="desc">ρ<sub>rain</sub> is the drop density in drops per m³.</div>
+            </div>
+            <div class="eq-item">
+                <strong>6. Mass of rain captured</strong>
+                <code>m = N · m<sub>drop</sub></code>
+                <div class="desc">m<sub>drop</sub> = 1 × 10⁻⁶ kg (1 mg per drop).</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footnote">
+        <strong>Model assumptions:</strong> drops are tiny (1 mg each), car frontal area ≈ 2.2 m² (approx. sedan).<br>
+        Only vertical & horizontal rain components relative to car are considered.
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ----- constants -----
+        const CAR_FRONTAL_AREA = 2.2;        // m²
+        const DROP_MASS_KG = 1e-6;           // 1 mg per drop
+
+        // ----- DOM elements -----
+        const carSpeedSlider = document.getElementById('carSpeed');
+        const rainSpeedSlider = document.getElementById('rainSpeed');
+        const rainAngleSlider = document.getElementById('rainAngle');
+        const distanceSlider = document.getElementById('distance');
+        const densitySlider = document.getElementById('density');
+
+        const carSpeedVal = document.getElementById('carSpeedVal');
+        const rainSpeedVal = document.getElementById('rainSpeedVal');
+        const rainAngleVal = document.getElementById('rainAngleVal');
+        const distanceVal = document.getElementById('distanceVal');
+        const densityVal = document.getElementById('densityVal');
+
+        const rainMassDisplay = document.getElementById('rainMassDisplay');
+        const areaDisplay = document.getElementById('areaDisplay');
+        const relSpeedDisplay = document.getElementById('relSpeedDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const volumeDisplay = document.getElementById('volumeDisplay');
+
+        // canvas
+        const canvas = document.getElementById('rainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // pause button
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const pauseText = document.getElementById('pauseText');
+
+        // ----- animation state -----
+        let carX = 40;               // current car x position on canvas (px)
+        const carWidth = 44;
+        const carHeight = 24;
+        const groundY = 190;
+        let lastTimestamp = 0;
+        let animationFrame = null;
+        let currentParams = {};
+        let isPaused = false;
+        let frozenTime = 0;          // stores the animation clock time when paused
+
+        // ----- helper: format number -----
+        function formatNumber(value, decimals = 2) {
+            return Number(value).toFixed(decimals);
+        }
+
+        // ----- physics + display update -----
+        function updateModel() {
+            const carSpeed = parseFloat(carSpeedSlider.value);
+            const rainSpeed = parseFloat(rainSpeedSlider.value);
+            const rainAngleDeg = parseFloat(rainAngleSlider.value);
+            const distance = parseFloat(distanceSlider.value);
+            const rainDensity = parseFloat(densitySlider.value);
+
+            carSpeedVal.innerHTML = carSpeed.toFixed(1) + ' <span class="unit">m/s</span>';
+            rainSpeedVal.innerHTML = rainSpeed.toFixed(1) + ' <span class="unit">m/s</span>';
+            rainAngleVal.innerHTML = rainAngleDeg + ' <span class="unit">°</span>';
+            distanceVal.innerHTML = distance.toFixed(0) + ' <span class="unit">m</span>';
+            densityVal.innerHTML = rainDensity.toFixed(0) + ' <span class="unit">drops/m³</span>';
+
+            const angleRad = (rainAngleDeg * Math.PI) / 180;
+            const tanAngle = Math.tan(angleRad);
+            const rainHorizGround = - rainSpeed * tanAngle;   // positive = same direction as car
+
+            const relSpeedMagnitude = Math.sqrt( (carSpeed - rainHorizGround)**2 + rainSpeed**2 );
+
+            let time = 0;
+            if (carSpeed > 0.001) {
+                time = distance / carSpeed;
+            } else {
+                time = 0;
+            }
+
+            const sweptVolume = CAR_FRONTAL_AREA * relSpeedMagnitude * time;
+            const dropCount = rainDensity * sweptVolume;
+            const rainMassKg = dropCount * DROP_MASS_KG;
+
+            rainMassDisplay.innerHTML = `${formatNumber(rainMassKg, 2)} <span>kg (or litres)</span>`;
+            areaDisplay.textContent = `${CAR_FRONTAL_AREA.toFixed(2)} m²`;
+            relSpeedDisplay.textContent = `${relSpeedMagnitude.toFixed(2)} m/s`;
+            timeDisplay.textContent = (time > 0) ? `${time.toFixed(1)} s` : `—`;
+            volumeDisplay.textContent = `${sweptVolume.toFixed(1)} m³`;
+
+            currentParams = {
+                carSpeed,
+                rainSpeed,
+                rainAngleDeg,
+                rainHorizGround,
+                relSpeedMagnitude,
+                rainMassKg
+            };
+        }
+
+        // ----- animation loop -----
+        function drawAnimation(timestamp) {
+            // ---- FIXED: freeze the animation clock while paused ----
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            // When paused, don't advance delta for animation motion
+            const delta = isPaused ? 0 : Math.min(100, timestamp - lastTimestamp);
+            lastTimestamp = timestamp;
+
+            // update car position only if not paused
+            if (!isPaused) {
+                const speed = currentParams.carSpeed || 0;
+                const pxPerSec = speed * 4.5;
+                carX += (pxPerSec * delta) / 1000;
+
+                // wrap car position
+                if (carX > canvas.width + 30) {
+                    carX = -carWidth;
+                }
+                // advance frozen time while not paused
+                frozenTime = timestamp / 1000;
+            }
+            // if paused, carX and frozenTime remain unchanged
+
+            // ---- clear and draw background ----
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+            skyGrad.addColorStop(0, '#0e2a3b');
+            skyGrad.addColorStop(1, '#1e4b63');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, groundY);
+
+            ctx.fillStyle = '#1a3f4a';
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#4f8ba8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 2);
+            ctx.lineTo(canvas.width, groundY + 2);
+            ctx.stroke();
+            ctx.setLineDash([10, 12]);
+            ctx.strokeStyle = '#7bb3cc';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 15);
+            ctx.lineTo(canvas.width, groundY + 15);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // ---- draw rain drops (using frozenTime when paused) ----
+            const dropCount = 70;
+            const rainSpeedVal = currentParams.rainSpeed || 0;
+            const angleDeg = currentParams.rainAngleDeg || 0;
+            const angleRad = angleDeg * Math.PI / 180;
+            const rainHorizPxPerSec = (currentParams.rainHorizGround || 0) * 5;
+            const rainVertPxPerSec = rainSpeedVal * 7;
+
+            // Use the frozen time so drops stop moving when paused
+            const t = frozenTime;
+
+            for (let i = 0; i < dropCount; i++) {
+                const phase = i * 1.618;
+                let y = ( (t * rainVertPxPerSec + i * 37) % (groundY + 20) );
+                let baseX = (i * 27 + t * rainHorizPxPerSec * 0.5) % (canvas.width + 40) - 20;
+                let x = baseX + Math.sin(i * 2.3 + t) * 6;
+                x = ((x % (canvas.width + 40)) + canvas.width + 40) % (canvas.width + 40) - 20;
+
+                if (y < -10 || y > groundY + 10) continue;
+
+                const lineLength = 6 + rainSpeedVal * 0.5;
+                const dx = Math.sin(angleRad) * lineLength;
+                const dy = Math.cos(angleRad) * lineLength;
+
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(180, 220, 255, ${0.35 + Math.sin(i + t) * 0.15})`;
+                ctx.lineWidth = 1.2 + Math.random() * 0.8;
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + dx, y + dy);
+                ctx.stroke();
+
+                if (i % 3 === 0) {
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(210, 235, 255, 0.7)`;
+                    ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // ---- draw car ----
+            const carY = groundY - carHeight;
+
+            ctx.fillStyle = '#d44c4c';
+            ctx.shadowColor = '#00000088';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.roundRect(carX, carY, carWidth, carHeight, 6);
+            ctx.fill();
+
+            ctx.fillStyle = '#2a4f6e';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.roundRect(carX + 6, carY + 4, 10, 8, 3);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.roundRect(carX + 20, carY + 4, 10, 8, 3);
+            ctx.fill();
+
+            ctx.fillStyle = '#1e2b33';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(carX + 10, carY + carHeight, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(carX + carWidth - 10, carY + carHeight, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#f5e56b';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(carX + carWidth - 4, carY + 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+
+            // ---- draw rain vector arrow ----
+            const angleRadDraw = currentParams.rainAngleDeg * Math.PI / 180;
+            const arrowLen = 22 + (currentParams.rainSpeed || 0) * 1.2;
+            const arrowX = canvas.width - 50;
+            const arrowY = 30;
+            const dxArrow = Math.sin(angleRadDraw) * arrowLen;
+            const dyArrow = Math.cos(angleRadDraw) * arrowLen;
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#8ec9ff';
+            ctx.lineWidth = 2.5;
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX + dxArrow, arrowY + dyArrow);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.fillStyle = '#8ec9ff';
+            const headSize = 6;
+            const headAngle = Math.atan2(dyArrow, dxArrow);
+            ctx.moveTo(arrowX + dxArrow, arrowY + dyArrow);
+            ctx.lineTo(arrowX + dxArrow - headSize * Math.cos(headAngle - 0.5), arrowY + dyArrow - headSize * Math.sin(headAngle - 0.5));
+            ctx.lineTo(arrowX + dxArrow - headSize * Math.cos(headAngle + 0.5), arrowY + dyArrow - headSize * Math.sin(headAngle + 0.5));
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.font = '9px monospace';
+            ctx.fillStyle = '#b0d4f0';
+            ctx.fillText('rain', arrowX - 4, arrowY - 8);
+
+            // ---- request next frame (always continue loop) ----
+            animationFrame = requestAnimationFrame(drawAnimation);
+        }
+
+        // roundRect polyfill
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x + r, y);
+            this.lineTo(x + w - r, y);
+            this.quadraticCurveTo(x + w, y, x + w, y + r);
+            this.lineTo(x + w, y + h - r);
+            this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            this.lineTo(x + r, y + h);
+            this.quadraticCurveTo(x, y + h, x, y + h - r);
+            this.lineTo(x, y + r);
+            this.quadraticCurveTo(x, y, x + r, y);
+            return this;
+        };
+
+        // ----- pause / resume -----
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseIcon.textContent = '▶';
+                pauseText.textContent = 'Resume';
+                // freeze time: frozenTime already holds the last animation time
+            } else {
+                pauseIcon.textContent = '⏸';
+                pauseText.textContent = 'Pause';
+                // reset lastTimestamp so the next frame doesn't produce a large delta
+                lastTimestamp = performance.now();
+            }
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+
+        // ----- start animation and bind events -----
+        function startAnimation() {
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            lastTimestamp = 0;
+            frozenTime = performance.now() / 1000; // initialise frozen time
+            animationFrame = requestAnimationFrame(drawAnimation);
+        }
+
+        const sliders = [carSpeedSlider, rainSpeedSlider, rainAngleSlider, distanceSlider, densitySlider];
+        sliders.forEach(slider => {
+            slider.addEventListener('input', updateModel);
+        });
+
+        updateModel();
+        startAnimation();
+
+        window.addEventListener('beforeunload', () => {
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+        });
+
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play with Physics · Interactive Models</title>
+<style>
+  :root {
+    --ink: #17233b;
+    --muted: #5b6780;
+    --blue: #1769d2;
+    --blue2: #eaf3ff;
+    --border: #d7e1ef;
+    --red: #d9362b;
+    --orange: #e08a18;
+    --green: #16834a;
+    --purple: #8e44ad;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f4f7fb;
+    color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 22px 60px;
+  }
+
+  /* ---------- header ---------- */
+  header {
+    margin-bottom: 40px;
+    text-align: left;
+  }
+  .kicker {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--blue);
+    background: var(--blue2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+    border: 1px solid #d3e5fa;
+  }
+  h1 {
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  h1 .accent {
+    color: var(--blue);
+    position: relative;
+    white-space: nowrap;
+  }
+  h1 .accent::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.05em;
+    height: 0.22em;
+    background: #cfe3fb;
+    border-radius: 4px;
+    z-index: -1;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 620px;
+    line-height: 1.55;
+  }
+
+  /* ---------- section label ---------- */
+  .section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ---------- experiment grid ---------- */
+  .experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .experiment-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 24px 24px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    box-shadow: 0 3px 14px rgba(23, 35, 59, 0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .experiment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent, var(--blue));
+    opacity: 0.9;
+  }
+  .experiment-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(23, 35, 59, 0.1);
+    border-color: #c2d6ee;
+  }
+  .card-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 16px;
+    display: inline-block;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--icon-bg, #eaf3ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .card-desc {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0 0 16px;
+  }
+  .card-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--tag-ink, var(--blue));
+    background: var(--tag-bg, var(--blue2));
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .card-arrow {
+    position: absolute;
+    top: 24px;
+    right: 22px;
+    font-size: 1.1rem;
+    color: #b7c5d8;
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+  .experiment-card:hover .card-arrow {
+    transform: translateX(4px);
+    color: var(--blue);
+  }
+
+  /* ---------- card color variants ---------- */
+  .card-rain {
+    --accent: #1769d2;
+    --icon-bg: #eaf3ff;
+    --tag-bg: #eaf3ff;
+    --tag-ink: #1769d2;
+  }
+  .card-projectile {
+    --accent: #e08a18;
+    --icon-bg: #fff5e6;
+    --tag-bg: #fff5e6;
+    --tag-ink: #b86f10;
+  }
+
+  /* ---------- coming soon card ---------- */
+  .coming-soon {
+    background: #fafbfd;
+    border: 1px dashed #cfdbe8;
+    border-radius: 18px;
+    padding: 26px 24px;
+    color: #8494ab;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 200px;
+  }
+  .coming-soon .card-icon {
+    background: #eef2f7;
+    opacity: 0.7;
+  }
+  .coming-soon .card-title {
+    color: #8494ab;
+  }
+  .coming-soon .card-desc {
+    color: #a3b1c4;
+    margin-bottom: 0;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  footer strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  @media (max-width: 520px) {
+    .wrap { padding: 32px 16px 44px; }
+    .experiment-card, .coming-soon { padding: 22px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="kicker">Interactive playground</span>
+    <h1>Play with <span class="accent">Physics</span></h1>
+    <p>
+      Tweak the sliders, watch the motion, and see the equations come alive.
+      Each model is a small sandbox for a real physical phenomenon — no formulas to memorize, just curiosity.
+    </p>
+  </header>
+
+  <p class="section-label">Experiments</p>
+
+  <div class="experiment-grid">
+  
+    <!-- Projectile motion -->
+    <a href="projectile.html" class="experiment-card card-projectile">
+      <span class="card-arrow">→</span>
+      <div class="card-icon">🎯</div>
+      <h2 class="card-title">Projectile Trajectory</h2>
+      <p class="card-desc">
+        Predict the flight of a launched object. Enter any three of height, velocity, angle, and distance — the solver finds the fourth.
+      </p>
+      <span class="card-tag">Kinematics · 2D motion</span>
+    </a>
+
+    <!-- Rain on a running car -->
+    <a href="rain-car.html" class="experiment-card card-rain">
+      <span class="card-arrow">→</span>
+      <div class="card-icon">🌧️</div>
+      <h2 class="card-title">Rain on a Running Car</h2>
+      <p class="card-desc">
+        How much rain does a moving car actually catch? Adjust car speed, rain velocity, angle, and distance to find out.
+      </p>
+      <span class="card-tag">Fluid dynamics · Kinematics</span>
+    </a>
+
+    <!-- Placeholder for future experiments -->
+    <div class="coming-soon">
+      <div class="card-icon">✨</div>
+      <h2 class="card-title">More on the way</h2>
+      <p class="card-desc">
+        New physics sandboxes are being built. Come back soon.
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    Built with <strong>GitHub Pages</strong> · Physics models for the curious
+  </footer>
+</div>
+</body>
+</html>

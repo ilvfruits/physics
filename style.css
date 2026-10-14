@@ -1,0 +1,22 @@
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #b6d9f0;
+    text-decoration: none;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.45rem 1rem;
+    border-radius: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 1.2rem;
+    transition: all 0.15s ease;
+    width: fit-content;
+}
+.back-btn:hover {
+    background: rgba(79, 163, 217, 0.25);
+    color: #ffffff;
+    border-color: #4fa3d9;
+    transform: translateX(-2px);
+}
